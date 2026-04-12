@@ -2,8 +2,12 @@
 
 > 原文：[Scaling Managed Agents: Decoupling the brain from the hands](https://www.anthropic.com/engineering/managed-agents)
 > 作者：Lance Martin, Gabe Cemaj, Michael Cohen (Anthropic)
+> 对应的api文档： https://platform.claude.com/docs/en/managed-agents/overview
 
 ---
+
+> [!note]
+> 感觉anthropic在cc源码泄漏后，想把cc的核心能力全部放在云端了。
 
 ## 一句话总结
 

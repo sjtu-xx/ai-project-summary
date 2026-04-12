@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "anthropic/managed-agents/Harness一直在演进，稳定的是什么？.md",
+                "file": "anthropic/managed-agents/Harness一直在演进，稳定的是什么？——Claude Managed Agents.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "Harness一直在演进，稳定的是什么？"
+              "title": "Harness一直在演进，稳定的是什么？——Claude Managed Agents"
             }
           }
         ]
@@ -94,7 +94,7 @@
             "state": {
               "type": "backlink",
               "state": {
-                "file": "anthropic/managed-agents/Harness一直在演进，稳定的是什么？.md",
+                "file": "anthropic/managed-agents/Harness一直在演进，稳定的是什么？——Claude Managed Agents.md",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -104,7 +104,7 @@
                 "unlinkedCollapsed": true
               },
               "icon": "links-coming-in",
-              "title": "Backlinks for Harness一直在演进，稳定的是什么？"
+              "title": "Backlinks for Harness一直在演进，稳定的是什么？——Claude Managed Agents"
             }
           },
           {
@@ -113,12 +113,12 @@
             "state": {
               "type": "outgoing-link",
               "state": {
-                "file": "anthropic/managed-agents/Harness一直在演进，稳定的是什么？.md",
+                "file": "anthropic/managed-agents/Harness一直在演进，稳定的是什么？——Claude Managed Agents.md",
                 "linksCollapsed": false,
                 "unlinkedCollapsed": true
               },
               "icon": "links-going-out",
-              "title": "Outgoing links from Harness一直在演进，稳定的是什么？"
+              "title": "Outgoing links from Harness一直在演进，稳定的是什么？——Claude Managed Agents"
             }
           },
           {
@@ -156,13 +156,13 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "anthropic/managed-agents/Harness一直在演进，稳定的是什么？.md",
+                "file": "anthropic/managed-agents/Harness一直在演进，稳定的是什么？——Claude Managed Agents.md",
                 "followCursor": false,
                 "showSearch": false,
                 "searchQuery": ""
               },
               "icon": "lucide-list",
-              "title": "Outline of Harness一直在演进，稳定的是什么？"
+              "title": "Outline of Harness一直在演进，稳定的是什么？——Claude Managed Agents"
             }
           }
         ]
@@ -185,6 +185,7 @@
   },
   "active": "76474f01ee676c07",
   "lastOpenFiles": [
-    "anthropic/managed-agents/Harness一直在演进，稳定的是什么？.md"
+    "anthropic/managed-agents/api.md",
+    "anthropic/managed-agents/Harness一直在演进，稳定的是什么？——Claude Managed Agents.md"
   ]
 }
