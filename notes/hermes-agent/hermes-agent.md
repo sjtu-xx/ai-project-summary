@@ -8,6 +8,7 @@
 - 上下文压缩的触发条件、算法和会话切分方式
 - 动态发现、Hook、MCP 重载与“热加载”的实际边界
 - 并发执行模型、后台进程机制、子 Agent 机制与隔离范围
+- skills、memory、工具生态、模型切换与 RL 子系统如何构成“自我进化”及其边界
 
 文中提到的文件路径均相对于仓库根目录。
 
@@ -902,7 +903,156 @@ Hermes 对上下文的拆分非常清楚：
 
 ---
 
-## 12. 关键文件说明
+## 12. 自我进化：能力增长闭环与边界
+
+### 12.1 这里的“自我进化”不等于在线改权重
+
+Hermes 源码里没有把默认对话 loop 设计成“边聊边训练、边训边换模型”的在线学习系统。`run_conversation()` 的主路径仍然是：
+
+- 读取当前上下文
+- 调用外部模型
+- 执行工具
+- 持久化消息、记忆和统计
+
+因此，这个项目中的“自我进化”更准确地说是**运行时能力的持续积累**，而不是基础模型参数的在线更新。它主要依赖四类外置机制：
+
+- 声明性记忆
+- 程序性技能
+- 可扩展工具与模型生态
+- 离线轨迹与 RL 训练子系统
+
+这几类机制组合起来，能让 Hermes 在多次会话、多种平台和长期运行中表现出“越用越强”的特征，但这种增强大多发生在**下一次会话、下一次加载或下一条外部训练链路**上。
+
+### 12.2 skills 是程序性记忆闭环
+
+`tools/skill_manager_tool.py` 在模块说明中明确把 skills 定义为 agent 的 **procedural memory**。它允许 agent：
+
+- `create` 新 skill
+- `edit` 或 `patch` 已有 `SKILL.md`
+- `write_file` 写入 supporting files
+- `delete` / `remove_file` 清理无效技能资产
+
+与一般的 memory 不同，skills 保存的不是“事实是什么”，而是“这类任务应该怎么做”。配套机制包括：
+
+- `tools/skills_tool.py` 提供 `skills_list` 与 `skill_view`
+- `agent/skill_commands.py` 将 `SKILL.md` 扫描成可调用命令
+- `hermes_cli/skills_hub.py` 提供 browse、search、install、update、audit 等能力
+
+这一套能力形成了项目中最接近“自我进化”的闭环：
+
+1. Agent 在任务中找到有效方法
+2. 用 `skill_manage` 把方法固化为 `SKILL.md` 与附属文件
+3. 后续会话先通过 `skills_list` 暴露紧凑目录，再按需 `skill_view`
+4. 当方法失效或有更好做法时，再次编辑或更新 skill
+
+由于 skill 文件是持久化资产，且能跨会话、跨平台复用，所以 Hermes 的很多“能力增长”并不是来自 prompt 越写越长，而是来自**把成功做法外置成可复用操作模板**。
+
+### 12.3 memory 是声明性记忆闭环
+
+`tools/memory_tool.py` 与 `agent/memory_manager.py` 形成的是另一种增长路径：把长期事实、用户偏好和环境约束持续沉淀到外部记忆中。
+
+其中：
+
+- `MEMORY.md` 更偏环境事实、项目约定、长期背景
+- `USER.md` 更偏用户偏好、沟通习惯、稳定纠正
+
+这一层的关键不是“能写文件”，而是它采用了**实时写盘 + system prompt 冻结快照**的双视图设计：
+
+- 工具调用后，记忆条目会立刻写入磁盘
+- 当前会话的 system prompt 不会立即重建
+- 新记忆通常在下一次新会话时进入 system prompt
+
+这说明 Hermes 在“即时一致”与“prompt cache 稳定”之间选择了后者。它的结果是：
+
+- 记忆可以持续累积
+- 当前轮推理不会被动态改写前缀污染
+- 记忆增强主要在后续会话生效
+
+`MemoryManager` 还提供 `prefetch_all()`、`sync_all()`、`on_pre_compress()`、`on_memory_write()` 等生命周期接口，使外部 provider 也能参与这个闭环。但其设计仍然比较保守，例如默认只允许至多一个外部 provider，避免多个长期记忆后端相互冲突。
+
+### 12.4 工具、插件、MCP 与模型切换更像“能力扩展”，不是自动闭环
+
+Hermes 还有一条重要的能力增长路径，但它更准确的名称不是“自我学习”，而是**动作空间扩张**。
+
+这一层包括：
+
+- `tools/registry.py` 与 `model_tools._discover_tools()` 的工具注册与发现
+- `discover_mcp_tools()` 带来的 MCP 工具接入
+- 插件系统注册的新工具与 hook
+- `hermes_cli/tools_config.py` 提供的按平台启停
+- `agent/models_dev.py` 与 `hermes_cli/model_switch.py` 支持的模型目录刷新与模型切换
+
+这些机制确实会让 Hermes 的能力边界持续增长。例如：
+
+- 新增一个 MCP server，就可能为 agent 增加整组外部能力
+- 启用新 plugin，可以扩展主循环 hook 或工具面
+- `models_dev` 通过 bundled snapshot、磁盘缓存、网络拉取和 60 分钟级缓存刷新，引入新的模型元数据与上下文能力
+
+但这里的增长大多依赖：
+
+- 用户安装
+- 配置变更
+- 进程启动时重新发现
+- 切换到更新、更强的外部模型
+
+因此它们更适合被归类为**系统可扩展性**，而不是严格意义上的自动学习闭环。
+
+### 12.5 压缩、session lineage、trajectory 与 RL 是“进化基础设施”
+
+Hermes 还有一些机制虽然不直接创造新知识，却为长期能力积累提供了基础设施。
+
+第一类是**长程工作维持能力**：
+
+- `agent/context_compressor.py` 负责把旧上下文压缩成结构化摘要
+- `hermes_state.py` 用 `parent_session_id` 维护压缩后的 session 链
+- SQLite FTS5 让旧消息可以被检索，而不是只能被原样保留
+
+这类机制不会改变模型本身，却能让 agent 在更长时间跨度上维持有效工作状态，减少“上下文一满就失忆”的问题。
+
+第二类是**离线数据与训练链路**：
+
+- `agent/trajectory.py` 负责导出 trajectory
+- `batch_runner.py` 负责批量运行、采样与统计
+- `tools/rl_training_tool.py` 则提供环境发现、配置管理、训练进程编排与 WandB 监控
+
+这说明 Hermes 已经为更强的“进化”预留了正式训练路径：它不仅能把在线交互变成结构化轨迹，也能把这些轨迹送进独立的 RL/评测体系中。
+
+不过要注意，这条路径与默认聊天 loop 是分离的。也就是说：
+
+- 日常会话不会自动触发训练
+- 训练出的新能力不会在同一轮对话里自动部署回当前 agent
+- 它更接近离线迭代，而不是在线自适应
+
+### 12.6 真正的边界在于缓存稳定性与运行安全
+
+如果只看功能列表，很容易把 Hermes 理解成“可以无限在线生长”的系统；但源码中的真实取舍恰恰相反，它对自我进化做了很多工程边界控制。
+
+最关键的边界包括：
+
+1. **会话内不频繁重建 system prompt**
+   memory 写入后不立即刷新，skills 通过消息注入而不是直接改固定前缀，继续会话优先复用已有 `system_prompt`。
+
+2. **会话内不随意变更工具集合**
+   工具视图在会话初始化时被裁剪并缓存，避免 prompt cache 断裂与 schema 漂移。
+
+3. **child agent 被显式限制**
+   `delegate_task` 默认 `skip_memory=True`、`skip_context_files=True`，且会屏蔽 `memory`、`delegate_task`、`execute_code` 等部分高风险工具。这意味着子 Agent 不能自由地把自己的局部经验直接写回共享长期记忆。
+
+4. **不存在通用意义上的核心代码热加载**
+   MCP 可局部重载，但主循环、内置工具和核心 Python 逻辑的变化通常仍需要重启进程。
+
+所以，Hermes 的“自我进化”本质上是**带护栏的渐进式增长**：
+
+- skills 负责沉淀可执行方法
+- memory 负责沉淀长期事实
+- tool / plugin / MCP / model 负责扩展动作边界
+- trajectory / batch / RL 负责支撑离线改进
+
+它能持续增强，但这种增强大多是**跨会话、跨进程、跨训练周期**显现出来的，而不是在单个同步 loop 中无边界自发演化。
+
+---
+
+## 13. 关键文件说明
 
 ### `run_agent.py`
 
@@ -970,9 +1120,25 @@ Hermes 对上下文的拆分非常清楚：
 
 实现 HookRegistry，负责事件 hook 的发现、注册和分发。
 
+### `tools/skills_tool.py`
+
+实现 `skills_list` 与 `skill_view`，负责按渐进披露方式暴露技能目录与技能正文。
+
+### `tools/skill_manager_tool.py`
+
+实现 skill 的创建、编辑、补丁、附属文件写入与删除，是程序性记忆沉淀的核心入口。
+
+### `hermes_cli/skills_hub.py`
+
+实现 skills hub 的 browse、search、install、preview、update、audit 等分发能力。
+
 ### `agent/skill_commands.py`
 
 实现 skill 扫描、技能消息构造、技能附带文件说明、`/plan` 等 prompt 型命令的共用逻辑。
+
+### `agent/models_dev.py`
+
+集成 models.dev 模型目录，负责 bundled snapshot、磁盘缓存、网络拉取和模型元数据查询。
 
 ### `tools/delegate_tool.py`
 
@@ -986,9 +1152,13 @@ Hermes 对上下文的拆分非常清楚：
 
 实现批量运行、trajectory 采样、工具统计与多进程数据集处理。
 
+### `tools/rl_training_tool.py`
+
+实现 RL 训练环境发现、配置编辑、训练进程编排、运行状态查询与 WandB 指标监控。
+
 ---
 
-## 13. 建议阅读顺序
+## 14. 建议阅读顺序
 
 若需要继续深入阅读源码，推荐按以下顺序进行：
 
@@ -1004,5 +1174,10 @@ Hermes 对上下文的拆分非常清楚：
 10. `tools/process_registry.py`
 11. `gateway/hooks.py`
 12. `agent/skill_commands.py`
+13. `tools/skills_tool.py`
+14. `tools/skill_manager_tool.py`
+15. `hermes_cli/skills_hub.py`
+16. `agent/models_dev.py`
+17. `tools/rl_training_tool.py`
 
 这个顺序基本对应从主执行链到外围扩展层的阅读路径。

@@ -11,10 +11,14 @@
             "id": "8310b3b6d1225444",
             "type": "leaf",
             "state": {
-              "type": "empty",
-              "state": {},
+              "type": "markdown",
+              "state": {
+                "file": "hermes-agent/hermes-agent.md",
+                "mode": "source",
+                "source": false
+              },
               "icon": "lucide-file",
-              "title": "New tab"
+              "title": "hermes-agent"
             }
           }
         ]
@@ -176,7 +180,7 @@
       "bases:Create new base": false
     }
   },
-  "active": "82552187516775e9",
+  "active": "8310b3b6d1225444",
   "lastOpenFiles": [
     "hermes-agent/hermes-agent.md",
     "hermes-agent",
